@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>touch-key</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse-ring {
+      0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
+      100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+    }
+    .fade-in { animation: fadeIn 0.5s ease-out; }
+    .touch-dot {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 5;
+      display: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .touch-dot::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      animation: pulse-ring 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .left-side {
+      background: radial-gradient(circle, rgba(139,92,246,0.3) 0%, rgba(139,92,246,0.05) 70%);
+      border: 2px solid rgba(139,92,246,0.6);
+      box-shadow: 0 0 15px rgba(139,92,246,0.4);
+    }
+    .left-side::before {
+      border: 2px solid rgba(139,92,246,0.5);
+    }
+    .right-side {
+      background: radial-gradient(circle, rgba(236,72,153,0.3) 0%, rgba(236,72,153,0.05) 70%);
+      border: 2px solid rgba(236,72,153,0.6);
+      box-shadow: 0 0 15px rgba(236,72,153,0.4);
+    }
+    .right-side::before {
+      border: 2px solid rgba(236,72,153,0.5);
+    }
+    canvas { touch-action: none; }
+
+    /* OSU 模式区域样式 */
+    #osu-overlay {
+      position: fixed;
+      top: 50px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 10;
+      display: none;
+      pointer-events: none;
+    }
+    #osu-overlay.active {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      pointer-events: auto;
+    }
+    .osu-zone {
+      position: relative;
+      cursor: pointer;
+      transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid rgba(120,119,198,0.2);
+    }
+    .osu-zone:hover {
+      background-color: rgba(120,119,198,0.08);
+    }
+    .osu-zone.pressed {
+      background-color: rgba(120,119,198,0.15);
+      border-color: rgba(120,119,198,0.4);
+    }
+    .osu-zone-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      font-weight: bold;
+      color: rgba(168,85,247,0.4);
+      pointer-events: none;
+      user-select: none;
+    }
+    .osu-zone.pressed .osu-zone-label {
+      color: rgba(168,85,247,0.8);
+      text-shadow: 0 0 10px rgba(168,85,247,0.6);
+    }
+  </style>
+</head>
+<body class="bg-[#0a0a0a] text-white overflow-hidden">
+
+  <!-- 顶部控制栏 -->
+  <div class="fixed top-0 left-0 right-0 z-20 fade-in">
+    <div class="flex items-center justify-between p-3 bg-[#18181b]/80 backdrop-blur-sm border-b border-zinc-800/50">
+      <!-- 左侧：状态信息 -->
+      <div id="info" class="text-zinc-400 text-sm font-medium">
+        连接中...
+      </div>
+
+      <!-- 中间：功能按钮组 -->
+      <div class="flex items-center gap-3">
+        <button id="esc-btn" class="px-4 py-2 bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 text-sm font-medium rounded-lg border border-zinc-700/50 transition-colors duration-150 active:bg-zinc-600/80">
+          ESC
+        </button>
+        <button id="enter-btn" class="px-4 py-2 bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 text-sm font-medium rounded-lg border border-zinc-700/50 transition-colors duration-150 active:bg-zinc-600/80">
+          Enter
+        </button>
+        <button id="backspace-btn" class="px-4 py-2 bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 text-sm font-medium rounded-lg border border-zinc-700/50 transition-colors duration-150 active:bg-zinc-600/80">
+          Back
+        </button>
+        <button id="delete-btn" class="px-4 py-2 bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 text-sm font-medium rounded-lg border border-zinc-700/50 transition-colors duration-150 active:bg-zinc-600/80">
+          Del
+        </button>
+      </div>
+
+      <!-- 右侧：模式选择 -->
+      <select id="mode-select" class="px-3 py-1.5 bg-zinc-800/80 text-zinc-300 text-xs font-medium rounded-md border border-zinc-700/50 cursor-pointer hover:bg-zinc-700/80 transition-colors duration-150 focus:outline-none focus:ring-1 focus:ring-zinc-600">
+        <option value="rizline">Rizline</option>
+        <option value="musedash">Muse Dash</option>
+        <option value="osu">OSU</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 触控画布 -->
+  <canvas id="c" class="absolute inset-0"></canvas>
+
+  <!-- OSU 模式区域划分 -->
+  <div id="osu-overlay">
+    <div class="osu-zone" data-key="d">
+      <div class="osu-zone-label">D</div>
+    </div>
+    <div class="osu-zone" data-key="f">
+      <div class="osu-zone-label">F</div>
+    </div>
+    <div class="osu-zone" data-key="j">
+      <div class="osu-zone-label">J</div>
+    </div>
+    <div class="osu-zone" data-key="k">
+      <div class="osu-zone-label">K</div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
+
