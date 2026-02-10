@@ -4,8 +4,23 @@ import pydirectinput
 import time
 import threading
 from collections import deque
+import sys
+import os
 
-app = Flask(__name__)
+# 处理 PyInstaller 打包后的路径
+if getattr(sys, 'frozen', False):
+    # 打包后的路径
+    base_path = sys._MEIPASS
+else:
+    # 开发环境路径
+    base_path = os.path.abspath(".")
+
+template_folder = os.path.join(base_path, 'templates')
+static_folder = os.path.join(base_path, 'static')
+
+app = Flask(__name__,
+            template_folder=template_folder,
+            static_folder=static_folder)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 

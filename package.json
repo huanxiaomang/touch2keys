@@ -1,0 +1,21 @@
+{
+  "name": "touch2keys",
+  "version": "1.0.0",
+  "description": "将手机触摸屏转换为节奏游戏键盘输入",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter frontend dev",
+    "build": "pnpm --filter frontend build:prod",
+    "install:all": "pnpm install && cd frontend && pnpm install"
+  },
+  "keywords": [
+    "touch",
+    "keyboard",
+    "rhythm-game",
+    "flask",
+    "vue"
+  ],
+  "author": "",
+  "license": "MIT"
+}
+
