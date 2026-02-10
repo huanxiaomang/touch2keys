@@ -21,6 +21,7 @@ const currentMode = ref<GameMode>('rizline')
 const statusText = ref('连接中...')
 const statusType = ref<StatusType>('info')
 const touchFeedbackRef = ref<InstanceType<typeof TouchFeedback> | null>(null)
+const topBarHeight = ref(60)
 
 // 处理触摸事件
 const handleTouch = (type: TouchEventType, touch: Touch, x: number, y: number) => {
@@ -41,6 +42,11 @@ const handleKeyPress = (key: string) => {
 // 处理模式切换
 const handleModeChange = (mode: GameMode) => {
   socketService.setMode(mode)
+}
+
+// 处理顶栏高度变化
+const handleHeightChange = (height: number) => {
+  topBarHeight.value = height
 }
 
 // 处理 OSU 按键
@@ -114,7 +120,13 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="bg-[#0a0a0a] text-white overflow-hidden w-screen h-screen">
+  <div class="relative bg-gradient-to-br from-[#0a0a0a] via-[#0f0a14] to-[#0a0a0a] text-white overflow-hidden w-screen h-screen">
+    <!-- 背景装饰 -->
+    <div class="absolute inset-0 opacity-30 pointer-events-none">
+      <div class="absolute top-0 left-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl animate-pulse"></div>
+      <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-fuchsia-500/10 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
+    </div>
+
     <!-- 顶部控制栏 -->
     <TopBar
       :status="statusText"
@@ -122,6 +134,7 @@ onUnmounted(() => {
       :current-mode="currentMode"
       @key-press="handleKeyPress"
       @mode-change="handleModeChange"
+      @height-change="handleHeightChange"
     />
 
     <!-- 触控画布 -->

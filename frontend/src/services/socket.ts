@@ -5,8 +5,6 @@ import type {
   ModeUpdateData,
   StatusData,
   ErrorData,
-  KeyPressData,
-  OsuKeyData,
   GameMode,
 } from '../types'
 
